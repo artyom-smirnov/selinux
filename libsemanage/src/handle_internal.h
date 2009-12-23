@@ -2,6 +2,7 @@
 #define _SEMANAGE_HANDLE_INTERNAL_H_
 
 #include <semanage/handle.h>
+#include <semanage/private/handle.h>
 #include "dso.h"
 
 hidden_proto(semanage_begin_transaction)
