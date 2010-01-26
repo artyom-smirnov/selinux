@@ -38,7 +38,7 @@ LIBSEMANAGE_1.0 {
 	  semanage_module_key_get_name;
 	  semanage_module_key_set_priority;
 	  semanage_module_key_set_name;
-	  semanage_module_get_module;
+	  semanage_module_get_module_info;
 	  semanage_module_list_all;
 	  semanage_module_get_enabled;
 	  semanage_module_set_enabled;
