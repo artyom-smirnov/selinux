@@ -1097,7 +1097,7 @@ int semanage_get_modules_names(semanage_handle_t * sh, char ***filenames,
 		ret = semanage_module_get_path(
 				sh,
 				&modinfos[i],
-				SEMANAGE_MODULE_PATH_HLL,
+				SEMANAGE_MODULE_PATH_CIL,
 				path,
 				sizeof(path));
 		if (ret != 0) {
