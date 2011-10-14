@@ -42,7 +42,7 @@
 #include "debug.h"
 
 int semanage_module_install(semanage_handle_t * sh,
-			    char *module_data, size_t data_len)
+			    char *module_data, size_t data_len, char *name, char *ext_lang, char *version)
 {
 	if (sh->funcs->install == NULL) {
 		ERR(sh,
@@ -57,7 +57,7 @@ int semanage_module_install(semanage_handle_t * sh,
 		}
 	}
 	sh->modules_modified = 1;
-	return sh->funcs->install(sh, module_data, data_len);
+	return sh->funcs->install(sh, module_data, data_len, name, ext_lang, version);
 }
 
 int semanage_module_install_file(semanage_handle_t * sh,
@@ -80,7 +80,7 @@ int semanage_module_install_file(semanage_handle_t * sh,
 }
 
 int semanage_module_upgrade(semanage_handle_t * sh,
-			    char *module_data, size_t data_len)
+			    char *module_data, size_t data_len, char *name, char *ext_lang, char *version)
 {
 	if (sh->funcs->upgrade == NULL) {
 		ERR(sh,
@@ -95,9 +95,9 @@ int semanage_module_upgrade(semanage_handle_t * sh,
 		}
 	}
 	sh->modules_modified = 1;
-	int rc = sh->funcs->upgrade(sh, module_data, data_len);
+	int rc = sh->funcs->upgrade(sh, module_data, data_len, name, ext_lang, version);
 	if (rc == -5) /* module did not exist */
-		rc = sh->funcs->install(sh, module_data, data_len);
+		rc = sh->funcs->install(sh, module_data, data_len, name, ext_lang, version);
 	return rc;
 	
 }
