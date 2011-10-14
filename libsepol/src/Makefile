@@ -5,20 +5,28 @@ LIBDIR ?= $(PREFIX)/lib
 SHLIBDIR ?= $(DESTDIR)/lib
 RANLIB ?= ranlib
 LIBBASE ?= $(shell basename $(LIBDIR))
+CILDIR ?= ../cil
 
 VERSION = $(shell cat ../VERSION)
 LIBVERSION = 1
+
+LEX = flex
+GENERATED = $(CILDIR)/src/cil_lexer.c
 
 LIBA=libsepol.a 
 TARGET=libsepol.so
 LIBPC=libsepol.pc
 LIBSO=$(TARGET).$(LIBVERSION)
-OBJS= $(patsubst %.c,%.o,$(wildcard *.c))
-LOBJS= $(patsubst %.c,%.lo,$(wildcard *.c))
-CFLAGS ?= -Werror -Wall -W -Wundef -Wshadow -Wmissing-noreturn -Wmissing-format-attribute
-override CFLAGS += -I. -I../include -D_GNU_SOURCE
+OBJS= $(patsubst %.c,%.o,$(wildcard *.c) $(wildcard $(CILDIR)/src/*.c) $(GENERATED))
+LOBJS= $(patsubst %.c,%.lo,$(wildcard *.c) $(wildcard $(CILDIR)/src/*.c) $(GENERATED))
+CFLAGS ?= -Werror -Wall -W -Wundef -Wshadow -Wmissing-format-attribute
+override CFLAGS += -I. -I../include -I$(CILDIR)/include -D_GNU_SOURCE
 
 all: $(LIBA) $(LIBSO) $(LIBPC)
+
+$(CILDIR)/src/cil_lexer.c: $(CILDIR)/src/cil_lexer.l
+	$(LEX) -t $< > $@
+
 
 $(LIBA):  $(OBJS)
 	$(AR) rcs $@ $^
