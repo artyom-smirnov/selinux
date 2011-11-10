@@ -42,7 +42,7 @@
 #include "debug.h"
 
 int semanage_module_install(semanage_handle_t * sh,
-			    char *module_data, size_t data_len, char *name, char *ext_lang, char *version)
+			    char *module_data, size_t data_len, char *name, char *ext_lang)
 {
 	if (sh->funcs->install == NULL) {
 		ERR(sh,
@@ -57,7 +57,7 @@ int semanage_module_install(semanage_handle_t * sh,
 		}
 	}
 	sh->modules_modified = 1;
-	return sh->funcs->install(sh, module_data, data_len, name, ext_lang, version);
+	return sh->funcs->install(sh, module_data, data_len, name, ext_lang);
 }
 
 int semanage_module_install_file(semanage_handle_t * sh,
@@ -80,7 +80,7 @@ int semanage_module_install_file(semanage_handle_t * sh,
 }
 
 int semanage_module_upgrade(semanage_handle_t * sh,
-			    char *module_data, size_t data_len, char *name, char *ext_lang, char *version)
+			    char *module_data, size_t data_len, char *name, char *ext_lang)
 {
 	if (sh->funcs->upgrade == NULL) {
 		ERR(sh,
@@ -95,9 +95,9 @@ int semanage_module_upgrade(semanage_handle_t * sh,
 		}
 	}
 	sh->modules_modified = 1;
-	int rc = sh->funcs->upgrade(sh, module_data, data_len, name, ext_lang, version);
+	int rc = sh->funcs->upgrade(sh, module_data, data_len, name, ext_lang);
 	if (rc == -5) /* module did not exist */
-		rc = sh->funcs->install(sh, module_data, data_len, name, ext_lang, version);
+		rc = sh->funcs->install(sh, module_data, data_len, name, ext_lang);
 	return rc;
 	
 }
@@ -162,9 +162,6 @@ void semanage_module_info_datum_destroy(semanage_module_info_t * modinfo)
 		free(modinfo->name);
 		modinfo->name = NULL;
 
-		free(modinfo->version);
-		modinfo->version = NULL;
-
 		free(modinfo->lang_ext);
 		modinfo->lang_ext = NULL;
 
@@ -188,13 +185,6 @@ const char *semanage_module_get_name(semanage_module_info_t * modinfo)
 }
 
 hidden_def(semanage_module_get_name)
-
-const char *semanage_module_get_version(semanage_module_info_t * modinfo)
-{
-	return modinfo->version;
-}
-
-hidden_def(semanage_module_get_version)
 
 int semanage_module_info_create(semanage_handle_t *sh,
 				semanage_module_info_t **modinfo)
@@ -220,7 +210,6 @@ int semanage_module_info_destroy(semanage_handle_t *sh,
 	}
 
 	free(modinfo->name);
-	free(modinfo->version);
 	free(modinfo->lang_ext);
 
 	return semanage_module_info_init(sh, modinfo);
@@ -236,7 +225,6 @@ int semanage_module_info_init(semanage_handle_t *sh,
 
 	modinfo->priority = 0;
 	modinfo->name = NULL;
-	modinfo->version = NULL;
 	modinfo->lang_ext = NULL;
 	modinfo->enabled = -1;
 
@@ -267,12 +255,6 @@ int semanage_module_info_clone(semanage_handle_t *sh,
 	}
 
 	ret = semanage_module_info_set_name(sh, target, source->name);
-	if (ret != 0) {
-		status = -1;
-		goto cleanup;
-	}
-
-	ret = semanage_module_info_set_version(sh, target, source->version);
 	if (ret != 0) {
 		status = -1;
 		goto cleanup;
@@ -324,21 +306,6 @@ int semanage_module_info_get_name(semanage_handle_t *sh,
 }
 
 hidden_def(semanage_module_info_get_name)
-
-int semanage_module_info_get_version(semanage_handle_t *sh,
-				     semanage_module_info_t *modinfo,
-				     const char **version)
-{
-	assert(sh);
-	assert(modinfo);
-	assert(version);
-
-	*version = modinfo->version;
-
-	return 0;
-}
-
-hidden_def(semanage_module_info_get_version)
 
 int semanage_module_info_get_lang_ext(semanage_handle_t *sh,
 				      semanage_module_info_t *modinfo,
@@ -420,36 +387,6 @@ int semanage_module_info_set_name(semanage_handle_t *sh,
 }
 
 hidden_def(semanage_module_info_set_name)
-
-int semanage_module_info_set_version(semanage_handle_t *sh,
-				     semanage_module_info_t *modinfo,
-				     const char *version)
-{
-	assert(sh);
-	assert(modinfo);
-	assert(version);
-
-	char * tmp;
-
-	/* Verify version */
-	if (semanage_module_validate_version(version) < 0) {
-		errno = 0;
-		ERR(sh, "Version %s is invalid.", version);
-		return -1;
-	}
-
-	tmp = strdup(version);
-	if (!tmp) {
-		return -1;
-	}
-
-	free(modinfo->version);
-	modinfo->version = tmp;
-
-	return 0;
-}
-
-hidden_def(semanage_module_info_set_version)
 
 int semanage_module_info_set_lang_ext(semanage_handle_t *sh,
 				      semanage_module_info_t *modinfo,
@@ -626,8 +563,6 @@ int semanage_module_get_path(semanage_handle_t *sh,
 			if (file == NULL) file = "cil";
 		case SEMANAGE_MODULE_PATH_LANG_EXT:
 			if (file == NULL) file = "lang_ext";
-		case SEMANAGE_MODULE_PATH_VERSION:
-			if (file == NULL) file = "version";
 
 			/* verify priority and name */
 			ret = semanage_module_validate_priority(modinfo->priority);
@@ -907,7 +842,6 @@ int semanage_module_info_validate(const semanage_module_info_t *modinfo)
 {
 	if (semanage_module_validate_priority(modinfo->priority) != 0 ||
 	    semanage_module_validate_name(modinfo->name) != 0 ||
-	    semanage_module_validate_version(modinfo->version) != 0 ||
 	    semanage_module_validate_lang_ext(modinfo->lang_ext) != 0 ||
 	    semanage_module_validate_enabled(modinfo->enabled) != 0) {
 		return -1;
@@ -1015,47 +949,6 @@ int semanage_module_validate_lang_ext(const char *ext)
 
 	for (ext++; *ext; ext++) {
 		if (ISVALIDCHAR(*ext)) {
-			continue;
-		}
-		status = -1;
-		goto exit;
-	}
-
-#undef ISVALIDCHAR
-
-exit:
-	return status;
-}
-
-/* Validate version.
- *
- * A version must match the following regular expression to be
- * considered valid:
- *
- * ^[:print:]+$
- *
- * returns 0 if version is valid, returns -1 otherwise.
- */
-int semanage_module_validate_version(const char *version)
-{
-	int status = 0;
-
-	if (version == NULL) {
-		status = -1;
-		goto exit;
-	}
-
-	/* must start with a printable char */
-	if (!isprint(*version)) {
-		status = -1;
-		goto exit;
-	}
-
-	/* everything else must be printable */
-#define ISVALIDCHAR(c) (isprint(c))
-
-	for (version++; *version; version++) {
-		if (ISVALIDCHAR(*version)) {
 			continue;
 		}
 		status = -1;

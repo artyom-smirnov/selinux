@@ -8,7 +8,7 @@ LIBSEMANAGE_1.0 {
 	  semanage_module_remove;
 	  semanage_module_list; semanage_module_info_datum_destroy;
 	  semanage_module_list_nth; semanage_module_get_name;
-	  semanage_module_get_version; semanage_select_store;
+	  semanage_select_store;
 	  semanage_reload_policy; semanage_set_reload; semanage_set_rebuild;
 	  semanage_set_root;
 	  semanage_user_*; semanage_bool_*; semanage_seuser_*;
@@ -24,12 +24,10 @@ LIBSEMANAGE_1.0 {
 	  semanage_module_info_destroy;
 	  semanage_module_info_get_priority;
 	  semanage_module_info_get_name;
-	  semanage_module_info_get_version;
 	  semanage_module_info_get_lang_ext;
 	  semanage_module_info_get_enabled;
 	  semanage_module_info_set_priority;
 	  semanage_module_info_set_name;
-	  semanage_module_info_set_version;
 	  semanage_module_info_set_lang_ext;
 	  semanage_module_info_set_enabled;
 	  semanage_module_key_create;

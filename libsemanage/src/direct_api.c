@@ -59,10 +59,10 @@ static int semanage_direct_disconnect(semanage_handle_t * sh);
 static int semanage_direct_begintrans(semanage_handle_t * sh);
 static int semanage_direct_commit(semanage_handle_t * sh);
 static int semanage_direct_install(semanage_handle_t * sh, char *data,
-				   size_t data_len, char *module_name, char *lang_ext, char *version);
+				   size_t data_len, char *module_name, char *lang_ext);
 static int semanage_direct_install_file(semanage_handle_t * sh, const char *module_name);
 static int semanage_direct_upgrade(semanage_handle_t * sh, char *data,
-				   size_t data_len, char *module_name, char *lang_ext, char *version);
+				   size_t data_len, char *module_name, char *lang_ext);
 static int semanage_direct_upgrade_file(semanage_handle_t * sh, const char *module_name);
 static int semanage_direct_remove(semanage_handle_t * sh, char *module_name);
 static int semanage_direct_list(semanage_handle_t * sh,
@@ -1001,7 +1001,7 @@ static int semanage_direct_commit(semanage_handle_t * sh)
  * writing file. */
 static int semanage_direct_install(semanage_handle_t * sh,
 				   char *data, size_t data_len,
-				   char *module_name, char *lang_ext, char *version)
+				   char *module_name, char *lang_ext)
 {
 	int status = 0;
 	int ret = 0;
@@ -1020,12 +1020,6 @@ static int semanage_direct_install(semanage_handle_t * sh,
 	}
 
 	ret = semanage_module_info_set_name(sh, &modinfo, module_name);
-	if (ret != 0) {
-		status = -1;
-		goto cleanup;
-	}
-
-	ret = semanage_module_info_set_version(sh, &modinfo, version);
 	if (ret != 0) {
 		status = -1;
 		goto cleanup;
@@ -1104,7 +1098,7 @@ static int semanage_direct_install_file(semanage_handle_t * sh,
 
 	lang_ext = separator + 1;
 
-	retval = semanage_direct_install(sh, data, data_len, filename, lang_ext, "1.0.0");
+	retval = semanage_direct_install(sh, data, data_len, filename, lang_ext);
 
       cleanup:
 	close(in_fd);
@@ -1114,17 +1108,16 @@ static int semanage_direct_install_file(semanage_handle_t * sh,
 	return retval;
 }
 
-/* Similar to semanage_direct_install(), except that it checks that
- * there already exists a module with the same name and that the
- * module is an older version then the one in 'data'.  Returns 0 on
- * success, -1 if out of memory, -2 if the data does not represent a
- * valid module file, -3 if error while writing file or reading
- * modules directory, -4 if the previous module is same or newer than 'data', 
+/* Similar to semanage_direct_install(), except that it checks that there
+ * already exists a module with the same name then the one in 'data'.  Returns
+ * 0 on success, -1 if out of memory, -2 if the data does not represent a valid
+ * module file, -3 if error while writing file or reading modules directory, -4
+ * if the previous module is same or newer than 'data', 
  * -5 if there does not exist an older module.
  */
 static int semanage_direct_upgrade(semanage_handle_t * sh,
 				   char *data, size_t data_len,
-				   char *module_name, char *lang_ext, char *version)
+				   char *module_name, char *lang_ext)
 {
 	int status = 0;
 	int ret = 0;
@@ -1143,12 +1136,6 @@ static int semanage_direct_upgrade(semanage_handle_t * sh,
 	}
 
 	ret = semanage_module_info_set_name(sh, &modinfo, module_name);
-	if (ret != 0) {
-		status = -1;
-		goto cleanup;
-	}
-
-	ret = semanage_module_info_set_version(sh, &modinfo, version);
 	if (ret != 0) {
 		status = -1;
 		goto cleanup;
@@ -1225,7 +1212,7 @@ static int semanage_direct_upgrade_file(semanage_handle_t * sh,
 
 	lang_ext = separator + 1;
 
-	retval = semanage_direct_upgrade(sh, data, data_len, filename, lang_ext, "1.0.0");
+	retval = semanage_direct_upgrade(sh, data, data_len, filename, lang_ext);
 
       cleanup:
 	close(in_fd);
@@ -1663,54 +1650,6 @@ static int semanage_direct_get_module_info(semanage_handle_t *sh,
 
 	fp = NULL;
 
-	/* lookup module version */
-	ret = semanage_module_get_path(sh,
-				       *modinfo,
-				       SEMANAGE_MODULE_PATH_VERSION,
-				       fn,
-				       sizeof(fn));
-	if (ret != 0) {
-		status = -1;
-		goto cleanup;
-	}
-
-	fp = fopen(fn, "r");
-
-	if (fp == NULL) {
-		ERR(sh,
-		    "Unable to open %s module version file.",
-		    (*modinfo)->name);
-		status = -1;
-		goto cleanup;
-	}
-
-	/* set module version */
-	if (getline(&tmp, &size, fp) < 0) {
-		ERR(sh,
-		    "Unable to read %s module version file.",
-		    (*modinfo)->name);
-		status = -1;
-		goto cleanup;
-	}
-
-	ret = semanage_module_info_set_version(sh, (*modinfo), tmp);
-	if (ret != 0) {
-		status = -1;
-		goto cleanup;
-	}
-	free(tmp);
-	tmp = NULL;
-
-	if (fclose(fp) != 0) {
-		ERR(sh,
-		    "Unable to close %s module version file.",
-		    (*modinfo)->name);
-		status = -1;
-		goto cleanup;
-	}
-
-	fp = NULL;
-
 	/* lookup enabled/disabled status */
 	ret = semanage_module_get_path(sh,
 				       *modinfo,
@@ -1859,45 +1798,6 @@ static int semanage_direct_set_module_info(semanage_handle_t *sh,
 
 	if (fclose(fp) != 0) {
 		ERR(sh, "Unable to close %s module ext file.", modinfo->name);
-		status = -1;
-		goto cleanup;
-	}
-
-	fp = NULL;
-
-	/* write version */
-	ret = semanage_module_get_path(sh,
-				       modinfo,
-				       SEMANAGE_MODULE_PATH_VERSION,
-				       fn,
-				       sizeof(fn));
-	if (ret != 0) {
-		status = -1;
-		goto cleanup;
-	}
-
-	fp = fopen(fn, "w");
-
-	if (fp == NULL) {
-		ERR(sh,
-		    "Unable to open %s module version file.",
-		    modinfo->name);
-		status = -1;
-		goto cleanup;
-	}
-
-	if (fputs(modinfo->version, fp) < 0) {
-		ERR(sh,
-		    "Unable to write %s module version file.",
-		    modinfo->name);
-		status = -1;
-		goto cleanup;
-	}
-
-	if (fclose(fp) != 0) {
-		ERR(sh,
-		    "Unable to close %s module version file.",
-		    modinfo->name);
 		status = -1;
 		goto cleanup;
 	}
@@ -2306,35 +2206,9 @@ static int semanage_direct_upgrade_info(semanage_handle_t *sh,
 	assert(data);
 
 	int status = 0;
-	int ret = 0;
-
-	semanage_module_info_t *existing = NULL;
-
-	/* get existing module data */
-	ret = semanage_direct_get_module_info(
-			sh,
-			(const semanage_module_key_t *)modinfo,
-			&existing);
-	if (ret == 0) {
-		/* verify this is an upgrade */
-		ret = strverscmp(existing->version, modinfo->version);
-		if (ret >= 0) {
-			ERR(sh,
-			    "Existing module %s version %s >= %s.",
-			    existing->name,
-			    existing->version,
-			    modinfo->version);
-			status = -4;
-			goto cleanup;
-		}
-	}
 
 	/* install the module */
 	status = semanage_direct_install_info(sh, modinfo, data, data_len);
-
-cleanup:
-	semanage_module_info_destroy(sh, existing);
-	free(existing);
 
 	return status;
 }

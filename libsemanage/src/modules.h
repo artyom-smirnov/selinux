@@ -30,7 +30,6 @@
 struct semanage_module_info {
 	uint16_t priority;	/* key, module priority */
 	char *name;		/* key, module name */
-	char *version;		/* module version */
 	char *lang_ext;		/* module source language extension */
 	int enabled;		/* module enabled/disabled status */
 };
@@ -84,7 +83,6 @@ enum semanage_module_path_type {
 	SEMANAGE_MODULE_PATH_HLL,
 	SEMANAGE_MODULE_PATH_CIL,
 	SEMANAGE_MODULE_PATH_LANG_EXT,
-	SEMANAGE_MODULE_PATH_VERSION,
 	SEMANAGE_MODULE_PATH_DISABLED,
 };
 
