@@ -438,7 +438,6 @@ int main(int argc, char *argv[])
 					}
 
 					const char *name = NULL;
-					const char *version = NULL;
 
 					for (j = 0; j < modinfos_len; j++) {
 						m = semanage_module_list_nth(modinfos, j);
@@ -446,10 +445,7 @@ int main(int argc, char *argv[])
 						result = semanage_module_info_get_name(sh, m, &name);
 						if (result != 0) goto cleanup_list;
 
-						result = semanage_module_info_get_version(sh, m, &version);
-						if (result != 0) goto cleanup_list;
-
-						printf("%s\t%s\n", name, version);
+						printf("%s\n", name);
 					}
 				}
 				else if (strcmp(mode_arg, "full") == 0) {
@@ -464,11 +460,11 @@ int main(int argc, char *argv[])
 					}
 
 					/* calculate column widths */
-					size_t column[5] = { 0, 0, 0, 0, 0 };
+					size_t column[4] = { 0, 0, 0, 0 };
 
 					/* fixed width columns */
 					column[0] = sizeof("000") - 1;
-					column[3] = sizeof("disabled") - 1;
+					column[2] = sizeof("disabled") - 1;
 
 					/* variable width columns */
 					const char *tmp = NULL;
@@ -482,24 +478,17 @@ int main(int argc, char *argv[])
 						size = strlen(tmp);
 						if (size > column[1]) column[1] = size;
 
-						result = semanage_module_info_get_version(sh, m, &tmp);
-						if (result != 0) goto cleanup_list;
-
-						size = strlen(tmp);
-						if (size > column[2]) column[2] = size;
-
 						result = semanage_module_info_get_lang_ext(sh, m, &tmp);
 						if (result != 0) goto cleanup_list;
 
 						size = strlen(tmp);
-						if (size > column[4]) column[4] = size;
+						if (size > column[3]) column[3] = size;
 					}
 
 					/* print out each module */
 					for (j = 0; j < modinfos_len; j++) {
 						uint16_t pri = 0;
 						const char *name = NULL;
-						const char *version = NULL;
 						int enabled = 0;
 						const char *lang_ext = NULL;
 
@@ -511,21 +500,17 @@ int main(int argc, char *argv[])
 						result = semanage_module_info_get_name(sh, m, &name);
 						if (result != 0) goto cleanup_list;
 
-						result = semanage_module_info_get_version(sh, m, &version);
-						if (result != 0) goto cleanup_list;
-
 						result = semanage_module_info_get_enabled(sh, m, &enabled);
 						if (result != 0) goto cleanup_list;
 
 						result = semanage_module_info_get_lang_ext(sh, m, &lang_ext);
 						if (result != 0) goto cleanup_list;
 
-						printf("%0*u %-*s %-*s %*s %-*s\n",
+						printf("%0*u %-*s %*s %-*s\n",
 							(int)column[0], pri,
 							(int)column[1], name,
-							(int)column[2], version,
-							(int)column[3], enabled ? "" : "disabled",
-							(int)column[4], lang_ext);
+							(int)column[2], enabled ? "" : "disabled",
+							(int)column[3], lang_ext);
 					}
 				}
 				else {
