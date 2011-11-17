@@ -26,12 +26,12 @@
 #include <semanage/private/semanage.h>
 
 enum client_modes {
-	NO_MODE, INSTALL_M, UPGRADE_M, BASE_M, REMOVE_M,
+	NO_MODE, INSTALL_M, UPGRADE_M, REMOVE_M,
 	LIST_M, RELOAD, PRIORITY_M, ENABLE_M, DISABLE_M
 };
 /* list of modes in which one ought to commit afterwards */
 static const int do_commit[] = {
-	0, 1, 1, 1, 1,
+	0, 1, 1, 1,
 	0, 0, 0, 1, 1,
 };
 
@@ -126,10 +126,9 @@ static void usage(char *progname)
 	printf("  -B, --build		    build and reload policy\n");
 	printf("  -i,--install=MODULE_PKG   install a new module\n");
 	printf("  -u,--upgrade=MODULE_PKG   upgrades or install module to a newer version\n");
-	printf("  -b,--base=MODULE_PKG      install new base module\n");
 	printf("  -r,--remove=MODULE_NAME   remove existing module\n");
 	printf("  -l,--list-modules=[KIND]  display list of installed modules\n");
-	printf("     KIND:  standard  list highest priority, enabled, non-base modules\n");
+	printf("     KIND:  standard  list highest priority, enabled modules\n");
 	printf("            full      list all modules\n");
 	printf("  -X,--priority=PRIORITY    set priority for following operations (1-999)\n");
 	printf("  -e,--enable=MODULE_NAME   enable module\n");
@@ -174,7 +173,6 @@ static void parse_command_line(int argc, char **argv)
 {
 	static struct option opts[] = {
 		{"store", required_argument, NULL, 's'},
-		{"base", required_argument, NULL, 'b'},
 		{"help", 0, NULL, 'h'},
 		{"install", required_argument, NULL, 'i'},
 		{"list-modules", optional_argument, NULL, 'l'},
@@ -199,13 +197,9 @@ static void parse_command_line(int argc, char **argv)
 	create_store = 0;
 	priority = 400;
 	while ((i =
-		getopt_long(argc, argv, "s:b:hi:l::vqr:u:RnNBDPX:e:d:p:", opts,
+		getopt_long(argc, argv, "s:hi:l::vqr:u:RnNBDPX:e:d:p:", opts,
 			    NULL)) != -1) {
 		switch (i) {
-		case 'b':
-			set_mode(BASE_M, optarg);
-			create_store = 1;
-			break;
 		case 'h':
 			usage(argv[0]);
 			exit(0);
@@ -337,7 +331,7 @@ int main(int argc, char *argv[])
 		semanage_set_root(sh, root);
 	}
 
-	/* if installing base module create store if necessary, for bootstrapping */
+	/* create store if necessary, for bootstrapping */
 	semanage_set_create_store(sh, create_store);
 
 	if (!create_store) {
@@ -408,16 +402,6 @@ int main(int argc, char *argv[])
 				}
 				result =
 				    semanage_module_upgrade_file(sh, mode_arg);
-				break;
-			}
-		case BASE_M:{
-				if (verbose) {
-					printf
-					    ("Attempting to install base module '%s':\n",
-					     mode_arg);
-				}
-				result =
-				    semanage_module_install_base_file(sh, mode_arg);
 				break;
 			}
 		case REMOVE_M:{
