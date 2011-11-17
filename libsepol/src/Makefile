@@ -8,7 +8,7 @@ LIBBASE ?= $(shell basename $(LIBDIR))
 CILDIR ?= ../cil
 
 VERSION = $(shell cat ../VERSION)
-LIBVERSION = 1
+LIBVERSION = 2
 
 LEX = flex
 GENERATED = $(CILDIR)/src/cil_lexer.c
