@@ -499,67 +499,6 @@ const char *semanage_conf_path(void)
 	return "/etc/selinux/semanage.conf";
 }
 
-/* Locates the highest priority enabled base module
- * and fills @path in with that value. @path must be
- * pre-allocated with size @len.
- *
- * Returns 0 on success and -1 on error.
- */
-int semanage_base_path(semanage_handle_t *sh,
-		       char *path,
-		       size_t len)
-{
-	assert(sh);
-	assert(path);
-
-	int status = 0;
-	int ret = 0;
-
-	semanage_module_info_t *base = NULL;
-
-	/* set key for getting base module */
-	semanage_module_key_t modkey;
-	ret = semanage_module_key_init(sh, &modkey);
-	if (ret != 0) {
-		status = -1;
-		goto cleanup;
-	}
-
-	ret = semanage_module_key_set_name(sh, &modkey, "_base");
-	if (ret != 0) {
-		status = -1;
-		goto cleanup;
-	}
-
-	/* get highest priority base module */
-	ret = semanage_module_get_module_info(sh, &modkey, &base);
-	if (ret != 0) {
-		/* no base module found */
-		status = -1;
-		goto cleanup;
-	}
-
-	/* get the highest priority base module path */
-	ret = semanage_module_get_path(
-			sh,
-			base,
-			SEMANAGE_MODULE_PATH_HLL,
-			path,
-			len);
-	if (ret != 0) {
-		status = -1;
-		goto cleanup;
-	}
-
-cleanup:
-	semanage_module_key_destroy(sh, &modkey);
-
-	semanage_module_info_destroy(sh, base);
-	free(base);
-
-	return status;
-}
-
 /**************** functions that create module store ***************/
 
 /* Check that the semanage store exists.  If 'create' is non-zero then
@@ -1135,14 +1074,10 @@ int semanage_get_active_modules(semanage_handle_t * sh,
 		goto cleanup;
 	}
 
-	/* for each highest priority, non-base, enabled module get its path */
+	/* for each highest priority, enabled module get its path */
 	semanage_list_destroy(&list);
 	j = 0;
 	for (i = 0; i < all_modinfos_len; i++) {
-		/* check if base */
-		ret = strcmp(all_modinfos[i].name, "_base");
-		if (ret == 0) continue;
-
 		/* check if enabled */
 		if (all_modinfos[i].enabled != 1) continue;
 

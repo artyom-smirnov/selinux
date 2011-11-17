@@ -64,9 +64,6 @@ static int semanage_direct_install_file(semanage_handle_t * sh, const char *modu
 static int semanage_direct_upgrade(semanage_handle_t * sh, char *data,
 				   size_t data_len, char *module_name, char *lang_ext, char *version);
 static int semanage_direct_upgrade_file(semanage_handle_t * sh, const char *module_name);
-static int semanage_direct_install_base(semanage_handle_t * sh, char *base_data,
-					size_t data_len);
-static int semanage_direct_install_base_file(semanage_handle_t * sh, const char *module_name);
 static int semanage_direct_remove(semanage_handle_t * sh, char *module_name);
 static int semanage_direct_list(semanage_handle_t * sh,
 				semanage_module_info_t ** modinfo,
@@ -109,8 +106,6 @@ static struct semanage_policy_table direct_funcs = {
 	.install_file = semanage_direct_install_file,
 	.upgrade = semanage_direct_upgrade,
 	.upgrade_file = semanage_direct_upgrade_file,
-	.install_base = semanage_direct_install_base,
-	.install_base_file = semanage_direct_install_base_file,
 	.remove = semanage_direct_remove,
 	.list = semanage_direct_list,
 	.get_enabled = semanage_direct_get_enabled,
@@ -373,45 +368,6 @@ static int semanage_direct_begintrans(semanage_handle_t * sh)
 }
 
 /********************* utility functions *********************/
-
-/* Takes a base module stored in 'module_data' and parse its headers.
- * Returns 0 on success, -1 if out of memory, or -2 if data did not
- * represent a module.
- */
-static int parse_base_headers(semanage_handle_t * sh,
-			      char *module_data, size_t data_len)
-{
-	struct sepol_policy_file *pf;
-	char *module_name = NULL, *version = NULL;
-	int file_type;
-
-	if (sepol_policy_file_create(&pf)) {
-		ERR(sh, "Out of memory!");
-		return -1;
-	}
-	sepol_policy_file_set_mem(pf, module_data, data_len);
-	sepol_policy_file_set_handle(pf, sh->sepolh);
-	if (module_data == NULL ||
-	    data_len == 0 ||
-	    sepol_module_package_info(pf, &file_type,
-				      &module_name, &version) == -1) {
-		sepol_policy_file_free(pf);
-		ERR(sh, "Could not parse base module data.");
-		return -2;
-	}
-	sepol_policy_file_free(pf);
-	free(module_name);
-	free(version);
-	if (file_type != SEPOL_POLICY_BASE) {
-		if (file_type == SEPOL_POLICY_MOD)
-			ERR(sh,
-			    "Received a non-base module, expected a base module.");
-		else
-			ERR(sh, "Data did not represent a module.");
-		return -2;
-	}
-	return 0;
-}
 
 #include <stdlib.h>
 #include <bzlib.h>
@@ -1451,20 +1407,6 @@ static int semanage_direct_set_enabled(semanage_handle_t *sh,
 		goto cleanup;
 	}
 
-	/* check for base module */
-	if (strcmp(modkey->name, "_base") == 0) {
-		if (enabled == 0) {
-			errno = 0;
-			ERR(sh, "Base module cannot be disabled.");
-			status = -1;
-			goto cleanup;
-		}
-		else {
-			errno = 0;
-			WARN(sh, "Base module is always enabled, redundant enabling of base module requested.");
-		}
-	}
-
 	/* check for disabled path, create if missing */
 	path = semanage_path(SEMANAGE_TMP, SEMANAGE_MODULES_DISABLED);
 
@@ -1843,16 +1785,6 @@ static int semanage_direct_set_module_info(semanage_handle_t *sh,
 	if (ret != 0) {
 		status = -1;
 		goto cleanup;
-	}
-
-	/* check for base module */
-	if (strcmp(modinfo->name, "_base") == 0) {
-		if (modinfo->enabled == 0) {
-			errno = 0;
-			ERR(sh, "Base module cannot be disabled.");
-			status = -1;
-			goto cleanup;
-		}
 	}
 
 	sh->modules_modified = 1;

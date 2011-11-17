@@ -65,12 +65,6 @@ struct semanage_policy_table {
 	int (*list) (struct semanage_handle *, semanage_module_info_t **,
 		     int *);
 
-	/* Install base policy */
-	int (*install_base) (struct semanage_handle *, char *, size_t);
-
-	/* Install a base module */
-	int (*install_base_file) (struct semanage_handle *, const char *);
-
 	/* Get module enabled status */
 	int (*get_enabled) (struct semanage_handle *sh,
 			    const semanage_module_key_t *key,

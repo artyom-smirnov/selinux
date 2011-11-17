@@ -124,44 +124,6 @@ int semanage_module_upgrade_file(semanage_handle_t * sh,
 	return rc;
 }
 
-int semanage_module_install_base(semanage_handle_t * sh,
-				 char *module_data, size_t data_len)
-{
-	if (sh->funcs->install_base == NULL) {
-		ERR(sh,
-		    "No install base function defined for this connection type.");
-		return -1;
-	} else if (!sh->is_connected) {
-		ERR(sh, "Not connected.");
-		return -1;
-	} else if (!sh->is_in_transaction) {
-		if (semanage_begin_transaction(sh) < 0) {
-			return -1;
-		}
-	}
-	sh->modules_modified = 1;
-	return sh->funcs->install_base(sh, module_data, data_len);
-}
-
-int semanage_module_install_base_file(semanage_handle_t * sh,
-				 const char *module_name) {
-
-	if (sh->funcs->install_base_file == NULL) {
-		ERR(sh,
-		    "No install base function defined for this connection type.");
-		return -1;
-	} else if (!sh->is_connected) {
-		ERR(sh, "Not connected.");
-		return -1;
-	} else if (!sh->is_in_transaction) {
-		if (semanage_begin_transaction(sh) < 0) {
-			return -1;
-		}
-	}
-	sh->modules_modified = 1;
-	return sh->funcs->install_base_file(sh, module_name);
-}
-
 int semanage_module_remove(semanage_handle_t * sh, char *module_name)
 {
 	if (sh->funcs->remove == NULL) {
@@ -975,7 +937,6 @@ int semanage_module_validate_priority(uint16_t priority)
  * to be considered valid:
  *
  * ^[a-zA-Z](\.?[a-zA-Z0-9_-])*$
- * ^_base$
  *
  * returns -1 if name is not valid, returns 0 otherwise
  */
@@ -985,10 +946,6 @@ int semanage_module_validate_name(const char * name)
 
 	if (name == NULL) {
 		status = -1;
-		goto exit;
-	}
-
-	if (strcmp(name, "_base") == 0) {
 		goto exit;
 	}
 
