@@ -26,12 +26,12 @@
 #include <semanage/private/semanage.h>
 
 enum client_modes {
-	NO_MODE, INSTALL_M, UPGRADE_M, REMOVE_M,
+	NO_MODE, INSTALL_M, REMOVE_M,
 	LIST_M, RELOAD, PRIORITY_M, ENABLE_M, DISABLE_M
 };
 /* list of modes in which one ought to commit afterwards */
 static const int do_commit[] = {
-	0, 1, 1, 1,
+	0, 1, 1,
 	0, 0, 0, 1, 1,
 };
 
@@ -125,7 +125,6 @@ static void usage(char *progname)
 	printf("  -R, --reload		    reload policy\n");
 	printf("  -B, --build		    build and reload policy\n");
 	printf("  -i,--install=MODULE_PKG   install a new module\n");
-	printf("  -u,--upgrade=MODULE_PKG   upgrades or install module to a newer version\n");
 	printf("  -r,--remove=MODULE_NAME   remove existing module\n");
 	printf("  -l,--list-modules=[KIND]  display list of installed modules\n");
 	printf("     KIND:  standard  list highest priority, enabled modules\n");
@@ -216,7 +215,8 @@ static void parse_command_line(int argc, char **argv)
 			set_mode(REMOVE_M, optarg);
 			break;
 		case 'u':
-			set_mode(UPGRADE_M, optarg);
+			fprintf(stderr, "The --upgrade option is deprecated. Use --install instead.\n");
+			set_mode(INSTALL_M, optarg);
 			break;
 		case 's':
 			set_store(optarg);
@@ -279,8 +279,6 @@ static void parse_command_line(int argc, char **argv)
 
 		if (commands && commands[num_commands - 1].mode == INSTALL_M) {
 			mode = INSTALL_M;
-		} else if (commands && commands[num_commands - 1].mode == UPGRADE_M) {
-			mode = UPGRADE_M;
 		} else if (commands && commands[num_commands - 1].mode == REMOVE_M) {
 			mode = REMOVE_M;
 		} else {
@@ -392,16 +390,6 @@ int main(int argc, char *argv[])
 				}
 				result =
 				    semanage_module_install_file(sh, mode_arg);
-				break;
-			}
-		case UPGRADE_M:{
-				if (verbose) {
-					printf
-					    ("Attempting to upgrade module '%s':\n",
-					     mode_arg);
-				}
-				result =
-				    semanage_module_upgrade_file(sh, mode_arg);
 				break;
 			}
 		case REMOVE_M:{
