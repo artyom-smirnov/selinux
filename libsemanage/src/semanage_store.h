@@ -26,6 +26,7 @@
 
 #include <sys/time.h>
 #include <sepol/module.h>
+#include <sepol/cil/cil.h>
 #include "handle.h"
 
 enum semanage_store_defs {
@@ -117,15 +118,8 @@ void semanage_release_trans_lock(semanage_handle_t * sh);
 void semanage_release_active_lock(semanage_handle_t * sh);
 int semanage_direct_get_serial(semanage_handle_t * sh);
 
-int semanage_link_sandbox(semanage_handle_t * sh,
-			  sepol_module_package_t ** base);
-
-int semanage_link_base(semanage_handle_t * sh,
-		       sepol_module_package_t ** base);
-
-int semanage_expand_sandbox(semanage_handle_t * sh,
-			    sepol_module_package_t * base,
-			    sepol_policydb_t ** policydb);
+int semanage_load_files(semanage_handle_t * sh,
+			    cil_db_t *cildb, char **filenames, int num_modules);
 
 int semanage_read_policydb(semanage_handle_t * sh,
 			    sepol_policydb_t * policydb);
