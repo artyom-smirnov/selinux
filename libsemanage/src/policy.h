@@ -52,12 +52,6 @@ struct semanage_policy_table {
 	/* Install a policy module */
 	int (*install_file) (struct semanage_handle *, const char *);
 
-	/* Upgrade a policy module */
-	int (*upgrade) (struct semanage_handle *, char *, size_t, char *, char *);
-	
-	/* Upgrade a policy module */
-	int (*upgrade_file) (struct semanage_handle *, const char *);
-
 	/* Remove a policy module */
 	int (*remove) (struct semanage_handle *, char *);
 
@@ -87,12 +81,6 @@ struct semanage_policy_table {
 
 	/* Install via module info */
 	int (*install_info) (struct semanage_handle *,
-			     const semanage_module_info_t *,
-			     char *,
-			     size_t);
-
-	/* Upgrade via module info */
-	int (*upgrade_info) (struct semanage_handle *,
 			     const semanage_module_info_t *,
 			     char *,
 			     size_t);

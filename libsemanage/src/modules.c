@@ -79,51 +79,6 @@ int semanage_module_install_file(semanage_handle_t * sh,
 	return sh->funcs->install_file(sh, module_name);
 }
 
-int semanage_module_upgrade(semanage_handle_t * sh,
-			    char *module_data, size_t data_len, char *name, char *ext_lang)
-{
-	if (sh->funcs->upgrade == NULL) {
-		ERR(sh,
-		    "No upgrade function defined for this connection type.");
-		return -1;
-	} else if (!sh->is_connected) {
-		ERR(sh, "Not connected.");
-		return -1;
-	} else if (!sh->is_in_transaction) {
-		if (semanage_begin_transaction(sh) < 0) {
-			return -1;
-		}
-	}
-	sh->modules_modified = 1;
-	int rc = sh->funcs->upgrade(sh, module_data, data_len, name, ext_lang);
-	if (rc == -5) /* module did not exist */
-		rc = sh->funcs->install(sh, module_data, data_len, name, ext_lang);
-	return rc;
-	
-}
-
-int semanage_module_upgrade_file(semanage_handle_t * sh,
-				 const char *module_name) {
-
-	if (sh->funcs->upgrade_file == NULL) {
-		ERR(sh,
-		    "No upgrade function defined for this connection type.");
-		return -1;
-	} else if (!sh->is_connected) {
-		ERR(sh, "Not connected.");
-		return -1;
-	} else if (!sh->is_in_transaction) {
-		if (semanage_begin_transaction(sh) < 0) {
-			return -1;
-		}
-	}
-	sh->modules_modified = 1;
-	int rc = sh->funcs->upgrade_file(sh, module_name);
-	if (rc == -5) /* module did not exist */
-		rc = sh->funcs->install_file(sh, module_name);
-	return rc;
-}
-
 int semanage_module_remove(semanage_handle_t * sh, char *module_name)
 {
 	if (sh->funcs->remove == NULL) {
@@ -1020,27 +975,6 @@ int semanage_module_install_info(semanage_handle_t *sh,
 	}
 	sh->modules_modified = 1;
 	return sh->funcs->install_info(sh, modinfo, data, data_len);
-}
-
-int semanage_module_upgrade_info(semanage_handle_t *sh,
-				 const semanage_module_info_t *modinfo,
-				 char *data,
-				 size_t data_len)
-{
-	if (sh->funcs->upgrade_info == NULL) {
-		ERR(sh,
-		    "No upgrade info function defined for this connection type.");
-		return -1;
-	} else if (!sh->is_connected) {
-		ERR(sh, "Not connected.");
-		return -1;
-	} else if (!sh->is_in_transaction) {
-		if (semanage_begin_transaction(sh) < 0) {
-			return -1;
-		}
-	}
-	sh->modules_modified = 1;
-	return sh->funcs->upgrade_info(sh, modinfo, data, data_len);
 }
 
 int semanage_module_remove_key(semanage_handle_t *sh,

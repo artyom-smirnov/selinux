@@ -32,10 +32,6 @@ int semanage_module_install(semanage_handle_t *,
 			    char *module_data, size_t data_len, char *name, char *ext_lang);
 int semanage_module_install_file(semanage_handle_t *,
 				 const char *module_name);
-int semanage_module_upgrade(semanage_handle_t *,
-			    char *module_data, size_t data_len, char *name, char *ext_lang);
-int semanage_module_upgrade_file(semanage_handle_t *,
-				 const char *module_name);
 int semanage_module_remove(semanage_handle_t *, char *module_name);
 
 /* semanage_module_info is for getting information on installed

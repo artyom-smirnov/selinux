@@ -4,7 +4,6 @@ LIBSEMANAGE_1.0 {
 	  semanage_msg_*;
           semanage_begin_transaction; semanage_commit;
 	  semanage_module_install; semanage_module_install_file;
-	  semanage_module_upgrade; semanage_module_upgrade_file;
 	  semanage_module_remove;
 	  semanage_module_list; semanage_module_info_datum_destroy;
 	  semanage_module_list_nth; semanage_module_get_name;
@@ -41,7 +40,6 @@ LIBSEMANAGE_1.0 {
 	  semanage_module_get_enabled;
 	  semanage_module_set_enabled;
 	  semanage_module_install_info;
-	  semanage_module_upgrade_info;
 	  semanage_module_remove_key;
   local: *;
 };

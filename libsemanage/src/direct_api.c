@@ -61,9 +61,6 @@ static int semanage_direct_commit(semanage_handle_t * sh);
 static int semanage_direct_install(semanage_handle_t * sh, char *data,
 				   size_t data_len, char *module_name, char *lang_ext);
 static int semanage_direct_install_file(semanage_handle_t * sh, const char *module_name);
-static int semanage_direct_upgrade(semanage_handle_t * sh, char *data,
-				   size_t data_len, char *module_name, char *lang_ext);
-static int semanage_direct_upgrade_file(semanage_handle_t * sh, const char *module_name);
 static int semanage_direct_remove(semanage_handle_t * sh, char *module_name);
 static int semanage_direct_list(semanage_handle_t * sh,
 				semanage_module_info_t ** modinfo,
@@ -88,11 +85,6 @@ static int semanage_direct_install_info(semanage_handle_t *sh,
 					char *data,
 					size_t data_len);
 
-static int semanage_direct_upgrade_info(semanage_handle_t *sh,
-					const semanage_module_info_t *modinfo,
-					char *data,
-					size_t data_len);
-
 static int semanage_direct_remove_key(semanage_handle_t *sh,
 				      const semanage_module_key_t *modkey);
 
@@ -104,8 +96,6 @@ static struct semanage_policy_table direct_funcs = {
 	.commit = semanage_direct_commit,
 	.install = semanage_direct_install,
 	.install_file = semanage_direct_install_file,
-	.upgrade = semanage_direct_upgrade,
-	.upgrade_file = semanage_direct_upgrade_file,
 	.remove = semanage_direct_remove,
 	.list = semanage_direct_list,
 	.get_enabled = semanage_direct_get_enabled,
@@ -113,7 +103,6 @@ static struct semanage_policy_table direct_funcs = {
 	.get_module_info = semanage_direct_get_module_info,
 	.list_all = semanage_direct_list_all,
 	.install_info = semanage_direct_install_info,
-	.upgrade_info = semanage_direct_upgrade_info,
 	.remove_key = semanage_direct_remove_key,
 };
 
@@ -1108,120 +1097,6 @@ static int semanage_direct_install_file(semanage_handle_t * sh,
 	return retval;
 }
 
-/* Similar to semanage_direct_install(), except that it checks that there
- * already exists a module with the same name then the one in 'data'.  Returns
- * 0 on success, -1 if out of memory, -2 if the data does not represent a valid
- * module file, -3 if error while writing file or reading modules directory, -4
- * if the previous module is same or newer than 'data', 
- * -5 if there does not exist an older module.
- */
-static int semanage_direct_upgrade(semanage_handle_t * sh,
-				   char *data, size_t data_len,
-				   char *module_name, char *lang_ext)
-{
-	int status = 0;
-	int ret = 0;
-
-	semanage_module_info_t modinfo;
-	ret = semanage_module_info_init(sh, &modinfo);
-	if (ret != 0) {
-		status = -1;
-		goto cleanup;
-	}
-
-	ret = semanage_module_info_set_priority(sh, &modinfo, sh->priority);
-	if (ret != 0) {
-		status = -1;
-		goto cleanup;
-	}
-
-	ret = semanage_module_info_set_name(sh, &modinfo, module_name);
-	if (ret != 0) {
-		status = -1;
-		goto cleanup;
-	}
-
-	ret = semanage_module_info_set_lang_ext(sh, &modinfo, lang_ext);
-	if (ret != 0) {
-		status = -1;
-		goto cleanup;
-	}
-
-	ret = semanage_module_info_set_enabled(sh, &modinfo, -1);
-	if (ret != 0) {
-		status = -1;
-		goto cleanup;
-	}
-
-	status = semanage_direct_upgrade_info(sh, &modinfo, data, data_len);
-
-cleanup:
-
-	semanage_module_info_destroy(sh, &modinfo);
-
-	return status;
-}
-
-/* Attempts to link a module to the sandbox's module directory, unlinking any
- * previous module stored within.  
- * Returns 0 on success, -1 if out of memory, -2 if the
- * data does not represent a valid module file, -3 if error while
- * writing file. */
-
-static int semanage_direct_upgrade_file(semanage_handle_t * sh,
-					const char *module_filename)
-{
-	int retval = -1;
-	char *data = NULL;
-	ssize_t data_len = 0;
-	int compressed = 0;
-	int in_fd = -1;
-	char *path = NULL;
-	char *filename;
-	char *lang_ext;
-	char *separator;
-
-	if ((in_fd = open(module_filename, O_RDONLY)) == -1) {
-		return -1;
-	}
-
-	if ((data_len = map_file(sh, in_fd, &data, &compressed)) <= 0) {
-		goto cleanup;
-	}
-
-	path = strdup(module_filename);
-	if (path == NULL) {
-		return -1;
-	}
-
-	filename = basename(path);
-
-	if (compressed) {
-		separator = strrchr(filename, '.');
-		if (separator == NULL) {
-			ERR(sh, "Compressed module does not have a valid extension.");
-		}
-		*separator = '\0';
-	}
-
-	separator = strrchr(filename, '.');
-	if (separator == NULL) {
-		ERR(sh, "Module does not have a valid extension.");
-	}
-	*separator = '\0';
-
-	lang_ext = separator + 1;
-
-	retval = semanage_direct_upgrade(sh, data, data_len, filename, lang_ext);
-
-      cleanup:
-	close(in_fd);
-	if (data_len > 0) munmap(data, data_len);
-	free(path);
-
-	return retval;
-}
-
 /* Removes a module from the sandbox.  Returns 0 on success, -1 if out
  * of memory, -2 if module not found or could not be removed. */
 static int semanage_direct_remove(semanage_handle_t * sh, char *module_name)
@@ -2192,23 +2067,6 @@ cleanup:
 	semanage_module_key_destroy(sh, &higher_key);
 	semanage_module_info_destroy(sh, higher_info);
 	free(higher_info);
-
-	return status;
-}
-
-static int semanage_direct_upgrade_info(semanage_handle_t *sh,
-					const semanage_module_info_t *modinfo,
-					char *data,
-					size_t data_len)
-{
-	assert(sh);
-	assert(modinfo);
-	assert(data);
-
-	int status = 0;
-
-	/* install the module */
-	status = semanage_direct_install_info(sh, modinfo, data, data_len);
 
 	return status;
 }
