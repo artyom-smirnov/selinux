@@ -48,7 +48,7 @@ def create_dir_from(src, dst, mode):
 	try:
 		con = selinux.lgetfilecon_raw(src)[1]
 		selinux.setfscreatecon_raw(con)
-		os.mkdir(dst, mode)	
+		os.makedirs(dst, mode)
 	except OSError as (err, stderr):
 		if err == errno.EEXIST:
 			pass
@@ -56,6 +56,16 @@ def create_dir_from(src, dst, mode):
 			print >> sys.stderr, "Error creating %s" % dst
 			exit(1)
 	
+def create_file_from(src, dst):
+	if DEBUG: print "Making file %s" % dst
+	try:
+		con = selinux.lgetfilecon_raw(src)[1]
+		selinux.setfscreatecon_raw(con)
+		open(dst, 'a').close()
+	except OSError as (err, stderr):
+		print >> sys.stderr, "Error creating %s" % dst
+		exit(1)
+
 def copy_module(store, name, con, base):
 	if DEBUG: print "Install module %s" % name	
 	(file, ext) = os.path.splitext(name)
@@ -73,65 +83,29 @@ def copy_module(store, name, con, base):
 
 		bottomdir = bottomdir_path(store)
 			
-		# Special case "base" since you can have modules named base 
-		if base:
-			file = "_base"
-
 		os.mkdir("%s/%s" % (bottomdir, file))
 
-		copy_with_context(os.path.join(root, name), "%s/%s/%s%s" % (bottomdir, file, file, ext))
+		copy_with_context(os.path.join(root, name), "%s/%s/hll" % (bottomdir, file))
 
 		# This is the ext file that will eventually be used to choose a compiler
 		efile = open("%s/%s/lang_ext" % (bottomdir, file), "w+", 0600)
 		efile.write("pp")
 		efile.close()
 
-		# This is the version file that stores the version of the module
-		version = "1.0.0"
-		if not base:
-			try:
-				pf = ctypes.c_void_p()
-				sepol.sepol_policy_file_create(ctypes.byref(pf))
-
-				pbuffer = None
-				try:
-					pbuffer = bz2.BZ2File(os.path.join(root, name)).read()
-				except:
-					pbuffer = open(os.path.join(root, name)).read()
-
-				if (pbuffer == None):
-					raise Exception("Unable read policy file into memory.")
-
-				cbuffer = ctypes.create_string_buffer(pbuffer)
-				sepol.sepol_policy_file_set_mem(pf, cbuffer, len(cbuffer))
-
-				header_file_type = ctypes.c_int()
-				header_name = ctypes.c_char_p()
-				header_version = ctypes.c_char_p()
-
-				ret = sepol.sepol_module_package_info(pf, ctypes.byref(header_file_type), ctypes.byref(header_name), ctypes.byref(header_version))
-				if (ret != 0):
-					raise Exception("Unable to parse package header.")
-
-				version = header_version.value
-
-				sepol.sepol_policy_file_free(pf)
-
-			except Exception as e:
-				print >> sys.stderr, e
-				print >> sys.stderr, "warning: unable to determine version, using default value"
-
-		efile = open("%s/%s/version" % (bottomdir, file), "w+", 0600)
-		efile.write(version)
-		efile.close()
-
 	except:
 		print >> sys.stderr, "Error installing module %s" % name
+		exit(1)
+
+def disable_module(file, root, name, disabledmodules):
+	if DEBUG: print "Disabling %s" % name
+	(disabledname, disabledext) = os.path.splitext(file)
+	create_file_from(os.path.join(root, name), "%s/%s" % (disabledmodules, disabledname))
 
 def migrate_store(store):
 
 	oldstore = oldstore_path(store);
 	oldmodules = oldmodules_path(store);
+	disabledmodules = disabledmodules_path(store);
 	newstore = newstore_path(store);
 	newmodules = newmodules_path(store);
 	bottomdir = bottomdir_path(store);
@@ -143,6 +117,7 @@ def migrate_store(store):
 	create_dir_from(oldmodules, newstore, 0700)
 	create_dir_from(oldstore, newmodules, 0700)
 	create_dir_from(oldstore, bottomdir, 0700)
+	create_dir_from(oldstore, disabledmodules, 0700)
 
 	# use whatever the file context of bottomdir is for the module directories
 	con = selinux.lgetfilecon_raw(bottomdir)[1]
@@ -162,7 +137,14 @@ def migrate_store(store):
 		elif root == oldmodules:
 			# This should be the modules directory
 			for name in files:
-				copy_module(store, name, con, 0)
+				(file, ext) = os.path.splitext(name)
+				if name == "base.pp":
+					print >> sys.stderr, "Error installing module %s, name conflicts with base" % name
+					exit(1)
+				elif ext == ".disabled":
+					disable_module(file, root, name, disabledmodules)
+				else:
+					copy_module(store, name, con, 0)
 
 def rebuild_policy():
 	# Ok, the modules are loaded, lets try to rebuild the policy
@@ -218,8 +200,11 @@ def oldstore_path(store):
 def oldmodules_path(store):
 	return "%s/modules" % oldstore_path(store)
 
+def disabledmodules_path(store):
+	return "%s/disabled" % newmodules_path(store)
+
 def newroot_path():
-	return "/var/lib/selinux"
+	return PATH
 
 def newstore_path(store):
 	return "%s/%s/active" % (newroot_path(), store)
@@ -242,6 +227,10 @@ if __name__ == "__main__":
 			  help="Output debug information")
 	parser.add_option("-c", "--clean", dest="clean", action="store_true", default=False,
 			  help="Clean old modules directory after migrate (default: no)")
+	parser.add_option("-n", "--norebuild", dest="norebuild", action="store_true", default=False,
+			  help="Disable rebuilding policy after migration (default: no)")
+	parser.add_option("-P", "--path", dest="path",
+			  help="Set path for the policy store (default: /var/lib/selinux)")
 
 	(options, args) = parser.parse_args()
 
@@ -249,6 +238,10 @@ if __name__ == "__main__":
 	PRIORITY = options.priority
 	TYPE = options.store
 	CLEAN = options.clean
+	NOREBUILD = options.norebuild
+	PATH = options.path
+	if PATH is None:
+		PATH = "/var/lib/selinux"
 
 	# List of paths that go in the active 'root'
 	TOPPATHS = [
@@ -297,5 +290,6 @@ if __name__ == "__main__":
 				print >> sys.stderr, "warning: Unable to remove old store modules directory %s. Cleaning failed." % oldmodules_path(store)
 			shutil.rmtree(oldmodules_path(store), onerror=remove_error)
 
-	rebuild_policy()
+	if NOREBUILD is False:
+		rebuild_policy()
 
