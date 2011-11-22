@@ -8,11 +8,11 @@ Set the alternate root directory for SELinux configuration directory.
 
 .B	#include <semanage/handle.h>
 
-.B	extern const char *semanage_set_root(const char *path);
+.B	extern const char *semanage_set_root(semanage_handle_t *sh, const char *path);
 
 .SH "DESCRIPTION"
 .TP
-This function sets an alternate root directory to for SELinux configuration paths to be used by the semanage library.
+This function sets an alternate root directory for SELinux configuration paths to be used by the semanage library.
 
 .SH "RETURN VALUE"
 In case of failure, \-1 is returned.

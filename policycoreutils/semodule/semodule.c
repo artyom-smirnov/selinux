@@ -54,6 +54,7 @@ static uint16_t priority;
 
 static semanage_handle_t *sh = NULL;
 static char *store;
+static char *root;
 
 extern char *optarg;
 extern int optind;
@@ -91,6 +92,20 @@ static void set_store(char *storename)
 	exit(1);
 }
 
+static void set_root(char *path)
+{
+	if ((root = strdup(path)) == NULL) {
+		fprintf(stderr, "Out of memory!\n");
+		goto bad;
+	}
+
+	return;
+
+      bad:
+	cleanup();
+	exit(1);
+}
+
 /* Establish signal handlers for the process. */
 static void create_signal_handlers(void)
 {
@@ -116,7 +131,7 @@ static void usage(char *progname)
 	printf("  -l,--list-modules=[KIND]  display list of installed modules\n");
 	printf("     KIND:  standard  list highest priority, enabled, non-base modules\n");
 	printf("            full      list all modules\n");
-	printf("  -p,--priority=PRIORITY    set priority for following operations (1-999)\n");
+	printf("  -X,--priority=PRIORITY    set priority for following operations (1-999)\n");
 	printf("  -e,--enable=MODULE_NAME   enable module\n");
 	printf("  -d,--disable=MODULE_NAME  disable module\n");
 	printf("Other options:\n");
@@ -171,9 +186,10 @@ static void parse_command_line(int argc, char **argv)
 		{"build", 0, NULL, 'B'},
 		{"disable_dontaudit", 0, NULL, 'D'},
 		{"preserve_tunables", 0, NULL, 'P'},
-		{"priority", required_argument, NULL, 'p'},
+		{"priority", required_argument, NULL, 'X'},
 		{"enable", required_argument, NULL, 'e'},
 		{"disable", required_argument, NULL, 'd'},
+		{"path", required_argument, NULL, 'p'},
 		{NULL, 0, NULL, 0}
 	};
 	int i;
@@ -183,7 +199,7 @@ static void parse_command_line(int argc, char **argv)
 	create_store = 0;
 	priority = 400;
 	while ((i =
-		getopt_long(argc, argv, "s:b:hi:l::vqr:u:RnNBDPp:e:d:", opts,
+		getopt_long(argc, argv, "s:b:hi:l::vqr:u:RnNBDPX:e:d:p:", opts,
 			    NULL)) != -1) {
 		switch (i) {
 		case 'b':
@@ -211,6 +227,9 @@ static void parse_command_line(int argc, char **argv)
 		case 's':
 			set_store(optarg);
 			break;
+		case 'p':
+			set_root(optarg);
+			break;
 		case 'R':
 			reload = 1;
 			break;
@@ -229,7 +248,7 @@ static void parse_command_line(int argc, char **argv)
 		case 'P':
 			preserve_tunables = 1;
 			break;
-		case 'p':
+		case 'X':
 			set_mode(PRIORITY_M, optarg);
 			break;
 		case 'e':
@@ -312,6 +331,10 @@ int main(int argc, char *argv[])
 		 * option will need to be used later to specify a policy server 
 		 * location */
 		semanage_select_store(sh, store, SEMANAGE_CON_DIRECT);
+	}
+
+	if (root) {
+		semanage_set_root(sh, root);
 	}
 
 	/* if installing base module create store if necessary, for bootstrapping */
