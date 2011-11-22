@@ -49,7 +49,7 @@ list highest priority, enabled, non-base modules
 full
 list all modules
 .TP
-.B  \-p,\-\-priority=PRIORITY
+.B  \-X,\-\-priority=PRIORITY
 set priority for following operations (1-999)
 .TP
 .B  \-e,\-\-enabled=MODULE_NAME
@@ -69,6 +69,9 @@ prints help message and quit
 .TP
 .B \-P,\-\-preserve_tunables
 Preserve tunables in policy
+.TP
+.B \-p,\-\-path
+Use an alternate path for the policy root
 .TP
 .B  \-v,\-\-verbose     
 be verbose
@@ -92,9 +95,11 @@ $ ls *.pp | grep \-Ev "base.pp|enableaudit.pp" | xargs /usr/sbin/semodule \-b ba
 # Disable a module.
 $ semodule \-d alsa
 # Install a module at a specific priority.
-$ semodule \-p 100 \-i alsa.pp
+$ semodule \-X 100 \-i alsa.pp
 # List all modules.
 $ semodule \-l full
+# Set an alternate path for the policy root
+$ semodule \-B \-p "/tmp"
 .fi
 
 .SH SEE ALSO

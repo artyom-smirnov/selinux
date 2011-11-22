@@ -132,6 +132,9 @@ int semanage_get_preserve_tunables(semanage_handle_t * handle);
 /* Set whether or not to preserve the needless unused branch of tunables */
 void semanage_set_preserve_tunables(semanage_handle_t * handle, int preserve_tunables);
 
+/* set the root path for semanage output files */
+void semanage_set_root(semanage_handle_t *sh, const char *path);
+
 /* META NOTES
  *
  * For all functions a non-negative number indicates success. For some

@@ -48,6 +48,7 @@ typedef struct semanage_conf {
 	struct external_prog *setfiles;
 	struct external_prog *sefcontext_compile;
 	struct external_prog *mod_prog, *linked_prog, *kernel_prog;
+	char *root_path;
 } semanage_conf_t;
 
 /* A linked list of verification programs.  Each one is called in

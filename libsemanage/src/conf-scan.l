@@ -40,6 +40,7 @@ int yywrap(void);
 
 #.*               /* ignore comments */
 module-store      return MODULE_STORE;
+root              return ROOT;
 policy-version    return VERSION;
 expand-check      return EXPAND_CHECK;
 file-mode         return FILE_MODE;

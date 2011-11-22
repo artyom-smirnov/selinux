@@ -245,7 +245,8 @@ static int semanage_init_final(semanage_handle_t *sh, const char *prefix)
 
 	/* SEMANAGE_FINAL_SELINUX */
 	const char *selinux_root = selinux_path();
-	len = strlen(selinux_root) +
+	len = strlen(sh->conf->root_path) +
+	      strlen(selinux_root) +
 	      strlen(semanage_final_prefix[SEMANAGE_FINAL_SELINUX]) +
 	      store_len;
 	semanage_final[SEMANAGE_FINAL_SELINUX] = malloc(len + 1);
@@ -255,7 +256,8 @@ static int semanage_init_final(semanage_handle_t *sh, const char *prefix)
 	}
 
 	sprintf(semanage_final[SEMANAGE_FINAL_SELINUX],
-		"%s%s%s",
+		"%s%s%s%s",
+		sh->conf->root_path,
 		selinux_root,
 		semanage_final_prefix[SEMANAGE_FINAL_SELINUX],
 		store_path);
@@ -411,7 +413,8 @@ int semanage_check_init(semanage_handle_t *sh, const char *prefix)
 
 		rc = snprintf(root,
 			      sizeof(root),
-			      "%s/%s",
+			      "%s%s/%s",
+			      sh->conf->root_path,
 			      prefix,
 			      sh->conf->store_path);
 		if (rc < 0 || rc >= (int)sizeof(root))
