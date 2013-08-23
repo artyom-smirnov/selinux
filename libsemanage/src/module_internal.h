@@ -2,7 +2,6 @@
 #define _SEMANAGE_MODULE_INTERNAL_H_
 
 #include <semanage/modules.h>
-#include <semanage/private/modules.h>
 #include "dso.h"
 
 hidden_proto(semanage_module_get_name)

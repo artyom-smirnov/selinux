@@ -23,8 +23,6 @@
 
 #include <semanage/modules.h>
 
-#include <semanage/private/semanage.h>
-
 enum client_modes {
 	NO_MODE, INSTALL_M, REMOVE_M,
 	LIST_M, RELOAD, PRIORITY_M, ENABLE_M, DISABLE_M
