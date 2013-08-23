@@ -414,25 +414,9 @@ class permissiveRecords(semanageRecords):
                savedir = os.getcwd()
                os.chdir(dirname)
                filename = "%s.te" % name
-               modtxt = """
-module %s 1.0;
+               modtxt = "(typepermissive %s)" % type
 
-require {
-          type %s;
-}
-
-permissive %s;
-""" % (name, type, type)
-               fd = open(filename, 'w')
-               fd.write(modtxt)
-               fd.close()
-               mc = module.ModuleCompiler()
-               mc.create_module_package(filename, 1)
-               fd = open("permissive_%s.pp" % type)
-               data = fd.read()
-               fd.close()
-
-               rc = semanage_module_install(self.sh, data, len(data));
+               rc = semanage_module_install(self.sh, modtxt, len(modtxt), name, "cil");
                if rc >= 0:
                       self.commit()
 
