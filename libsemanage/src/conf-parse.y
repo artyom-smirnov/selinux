@@ -39,6 +39,7 @@ extern char *semanage_text;
 
 static int parse_module_store(char *arg);
 static int parse_root_path(char *arg);
+static int parse_compiler_path(char *arg);
 static void semanage_conf_external_prog_destroy(external_prog_t *ep);
 static int new_external_prog(external_prog_t **chain);
 
@@ -57,7 +58,7 @@ static int parse_errors;
         char *s;
 }
 
-%token MODULE_STORE VERSION TARGET_PLATFORM ROOT EXPAND_CHECK FILE_MODE SAVE_PREVIOUS SAVE_LINKED
+%token MODULE_STORE VERSION TARGET_PLATFORM ROOT EXPAND_CHECK FILE_MODE SAVE_PREVIOUS SAVE_LINKED COMPILER_DIR IGNORE_MODULE_CACHE
 %token LOAD_POLICY_START SETFILES_START SEFCONTEXT_COMPILE_START DISABLE_GENHOMEDIRCON HANDLE_UNKNOWN USEPASSWD IGNOREDIRS
 %token BZIP_BLOCKSIZE BZIP_SMALL
 %token VERIFY_MOD_START VERIFY_LINKED_START VERIFY_KERNEL_START BLOCK_END
@@ -80,6 +81,8 @@ single_opt:     module_store
         |       version
         |       target_platform
         |       root
+        |       compiler_dir
+        |       ignore_module_cache
         |       expand_check
         |       file_mode
         |       save_previous
@@ -107,6 +110,25 @@ root:           ROOT '=' ARG  {
                                 YYABORT;
                         }
                 }
+        ;
+
+compiler_dir:       COMPILER_DIR '=' ARG  {
+                        if (parse_compiler_path($3) != 0) {
+                                parse_errors++;
+                                YYABORT;
+                        }
+                }
+        ;
+
+ignore_module_cache:	IGNORE_MODULE_CACHE '=' ARG  {
+							if (strcasecmp($3, "true") == 0)
+								current_conf->ignore_module_cache = 1;
+							else if (strcasecmp($3, "false") == 0)
+								current_conf->ignore_module_cache = 0;
+							else {
+								yyerror("disable-caching can only be 'true' or 'false'");
+							}
+						}
         ;
 
 version:        VERSION '=' ARG  {
@@ -298,6 +320,7 @@ static int semanage_conf_init(semanage_conf_t * conf)
 	conf->store_path = strdup(basename(selinux_policy_root()));
 	conf->ignoredirs = NULL;
 	conf->root_path = strdup("");
+	conf->compiler_directory_path = strdup("/usr/libexec/selinux/hll");
 	conf->policyvers = sepol_policy_kern_vers_max();
 	conf->target_platform = SEPOL_TARGET_SELINUX;
 	conf->expand_check = 1;
@@ -306,6 +329,7 @@ static int semanage_conf_init(semanage_conf_t * conf)
 	conf->file_mode = 0644;
 	conf->bzip_blocksize = 9;
 	conf->bzip_small = 0;
+	conf->ignore_module_cache = 0;
 
 	conf->save_previous = 0;
 	conf->save_linked = 0;
@@ -407,6 +431,7 @@ void semanage_conf_destroy(semanage_conf_t * conf)
 		free(conf->store_path);
 		free(conf->ignoredirs);
 		free(conf->root_path);
+		free(conf->compiler_directory_path);
 		semanage_conf_external_prog_destroy(conf->load_policy);
 		semanage_conf_external_prog_destroy(conf->setfiles);
 		semanage_conf_external_prog_destroy(conf->sefcontext_compile);
@@ -479,6 +504,16 @@ static int parse_root_path(char *arg)
 
 	free(current_conf->root_path);
 	current_conf->root_path = strdup(arg);
+	return 0;
+}
+
+static int parse_compiler_path(char *arg)
+{
+	if (arg == NULL) {
+		return -1;
+	}
+	free(current_conf->compiler_directory_path);
+	current_conf->compiler_directory_path = strdup(arg);
 	return 0;
 }
 
