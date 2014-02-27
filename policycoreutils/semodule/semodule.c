@@ -48,6 +48,7 @@ static int create_store;
 static int build;
 static int disable_dontaudit;
 static int preserve_tunables;
+static int ignore_module_cache;
 static uint16_t priority;
 
 static semanage_handle_t *sh = NULL;
@@ -137,6 +138,7 @@ static void usage(char *progname)
 	printf("  -v,--verbose     be verbose\n");
 	printf("  -D,--disable_dontaudit	Remove dontaudits from policy\n");
 	printf("  -P,--preserve_tunables	Preserve tunables in policy\n");
+	printf("  -C,--ignore_module_cache	Rebuild CIL modules compiled from HLL files\n");
 	printf("  -p,--path        use an alternate path for the policy root\n");
 }
 
@@ -181,6 +183,7 @@ static void parse_command_line(int argc, char **argv)
 		{"build", 0, NULL, 'B'},
 		{"disable_dontaudit", 0, NULL, 'D'},
 		{"preserve_tunables", 0, NULL, 'P'},
+		{"ignore_module_cache", 0, NULL, 'C'},
 		{"priority", required_argument, NULL, 'X'},
 		{"enable", required_argument, NULL, 'e'},
 		{"disable", required_argument, NULL, 'd'},
@@ -194,7 +197,7 @@ static void parse_command_line(int argc, char **argv)
 	create_store = 0;
 	priority = 400;
 	while ((i =
-		getopt_long(argc, argv, "s:hi:l::vqr:u:RnNBDPX:e:d:p:", opts,
+		getopt_long(argc, argv, "s:hi:l::vqr:u:RnNBDCPX:e:d:p:", opts,
 			    NULL)) != -1) {
 		switch (i) {
 		case 'h':
@@ -239,6 +242,9 @@ static void parse_command_line(int argc, char **argv)
 			break;
 		case 'P':
 			preserve_tunables = 1;
+			break;
+		case 'C':
+			ignore_module_cache = 1;
 			break;
 		case 'X':
 			set_mode(PRIORITY_M, optarg);
@@ -606,6 +612,8 @@ cleanup_disable:
 			semanage_set_disable_dontaudit(sh, 0);
 		if (preserve_tunables)
 			semanage_set_preserve_tunables(sh, 1);
+		if (ignore_module_cache)
+			semanage_set_ignore_module_cache(sh, 1);
 
 		result = semanage_commit(sh);
 	}
