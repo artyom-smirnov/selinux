@@ -77,7 +77,13 @@ int selinux_mkload_policy(int preservebools)
 #ifdef SHARED
 	char *errormsg = NULL;
 	void *libsepolh = NULL;
-	libsepolh = dlopen("libsepol.so.1", RTLD_NOW);
+	libsepolh = dlopen("libsepol.so", RTLD_NOW);
+	if (!libsepolh) {
+		libsepolh = dlopen("libsepol.so.2", RTLD_NOW);
+	}
+	if (!libsepolh) {
+		libsepolh = dlopen("libsepol.so.1", RTLD_NOW);
+	}
 	if (libsepolh) {
 		usesepol = 1;
 		dlerror();
