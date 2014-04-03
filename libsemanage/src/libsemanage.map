@@ -10,6 +10,7 @@ LIBSEMANAGE_1.0 {
 	  semanage_select_store;
 	  semanage_reload_policy; semanage_set_reload; semanage_set_rebuild;
 	  semanage_set_root;
+	  semanage_set_store_root;
 	  semanage_user_*; semanage_bool_*; semanage_seuser_*;
 	  semanage_iface_*; semanage_port_*; semanage_context_*;
 	  semanage_node_*;

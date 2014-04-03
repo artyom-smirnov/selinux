@@ -481,12 +481,6 @@ const char *semanage_final_path(enum semanage_final_defs store,
 	return semanage_final_paths[store][path_name];
 }
 
-/* Return the root of the semanage store. */
-const char *semanage_root_path(void)
-{
-	return "/var/lib/selinux";
-}
-
 /* Return a fully-qualified path + filename to the semanage
  * configuration file.  The caller must not alter the string returned
  * (and hence why this function return type is const).
@@ -891,7 +885,7 @@ int semanage_make_final(semanage_handle_t *sh)
 		       sizeof(fn),
 		       "%s%s%s",
 		       sh->conf->root_path,
-		       semanage_root_path(),
+		       sh->conf->store_root_path,
 		       semanage_final_prefix[SEMANAGE_FINAL_TMP]);
 	if (ret < 0 || ret >= (int)sizeof(fn)) {
 		ERR(sh, "Unable to compose the final tmp path.");

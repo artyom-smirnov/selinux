@@ -154,6 +154,9 @@ void semanage_set_ignore_module_cache(semanage_handle_t *handle, int ignore_modu
 /* set the root path for semanage output files */
 void semanage_set_root(semanage_handle_t *sh, const char *path);
 
+/* set the store root path for semanage output files */
+void semanage_set_store_root(semanage_handle_t *sh, const char *store_root);
+
 /* META NOTES
  *
  * For all functions a non-negative number indicates success. For some
