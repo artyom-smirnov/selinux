@@ -54,6 +54,7 @@ static uint16_t priority;
 static semanage_handle_t *sh = NULL;
 static char *store;
 static char *root;
+static char *store_root;
 
 extern char *optarg;
 extern int optind;
@@ -105,6 +106,20 @@ static void set_root(char *path)
 	exit(1);
 }
 
+static void set_store_root(char *path)
+{
+	if ((store_root = strdup(path)) == NULL) {
+		fprintf(stderr, "Out of memory!\n");
+		goto bad;
+	}
+
+	return;
+
+      bad:
+	cleanup();
+	exit(1);
+}
+
 /* Establish signal handlers for the process. */
 static void create_signal_handlers(void)
 {
@@ -140,6 +155,7 @@ static void usage(char *progname)
 	printf("  -P,--preserve_tunables	Preserve tunables in policy\n");
 	printf("  -C,--ignore_module_cache	Rebuild CIL modules compiled from HLL files\n");
 	printf("  -p,--path        use an alternate path for the policy root\n");
+	printf("  -S,--store-path  use an alternate path for the policy store root\n");
 }
 
 /* Sets the global mode variable to new_mode, but only if no other
@@ -188,6 +204,7 @@ static void parse_command_line(int argc, char **argv)
 		{"enable", required_argument, NULL, 'e'},
 		{"disable", required_argument, NULL, 'd'},
 		{"path", required_argument, NULL, 'p'},
+		{"store-path", required_argument, NULL, 'S'},
 		{NULL, 0, NULL, 0}
 	};
 	int i;
@@ -197,7 +214,7 @@ static void parse_command_line(int argc, char **argv)
 	create_store = 0;
 	priority = 400;
 	while ((i =
-		getopt_long(argc, argv, "s:hi:l::vqr:u:RnNBDCPX:e:d:p:", opts,
+		getopt_long(argc, argv, "s:hi:l::vqr:u:RnNBDCPX:e:d:p:S:", opts,
 			    NULL)) != -1) {
 		switch (i) {
 		case 'h':
@@ -224,6 +241,9 @@ static void parse_command_line(int argc, char **argv)
 			break;
 		case 'p':
 			set_root(optarg);
+			break;
+		case 'S':
+			set_store_root(optarg);
 			break;
 		case 'R':
 			reload = 1;
@@ -331,6 +351,10 @@ int main(int argc, char *argv[])
 
 	if (root) {
 		semanage_set_root(sh, root);
+	}
+
+	if (store_root) {
+		semanage_set_store_root(sh, store_root);
 	}
 
 	/* create store if necessary, for bootstrapping */
